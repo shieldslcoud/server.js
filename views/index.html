@@ -1,56 +1,107 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html>
 <head>
-    <title>DSS DEMO</title>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
-    <link href="css/styles.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css?family=Merriweather:400,700" rel="stylesheet" type="text/css">
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title>BeyondTrust Real-Time State API Demo</title>
+	<meta name="description" content="">
+	<meta name="viewport" content="width=device-width">
+	<link rel="stylesheet" href="styles.css">
 </head>
-
 <body>
-    <nav class="navbar navbar-dark bg-dark navbar-static-top navbar-expand-md">
-        <div class="container">
-            <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false"> <span class="sr-only">Toggle navigation</span>
-            </button> <a class="navbar-brand" href="#">BeyondTrust SecretsSafe</a>
-            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-                <ul class="nav navbar-nav mr-auto">
-                    <li class="active nav-item"><a href="/" class="nav-link">Home</a>
-                    </li>
-                    <li class="nav-item"><a href="{{ site.baseurl }}{{ sharks.html }}" class="nav-link">DSS</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
-    <div class="jumbotron">
-        <div class="container">
-            <h1>DEVOPS </h1>
-            <p>Are you ready to learn about DEVOPS?</p>
-            <p><img src="https://raw.githubusercontent.com/pdasilva11/server.js/main/views/btlogo.png" alt="BT">
-            <br>
-            <p><a class="btn btn-primary btn-lg" href="https://github.com/pdasilva11/server.js/main/views/sharks.html" role="button">Get DSS Info</a>
-            <p>
-            </p>
-        </div>
-    </div>
-    <div class="container">
-        <div class="row">
-            <div class="col-lg-6">
-                <h3>SECRETSSAFE</h3>
-                <p>
-                <p><img src="https://raw.githubusercontent.com/pdasilva11/server.js/main/views/medica.png" alt="Medica">
-                </p>
-            </div>
-            <div class="col-lg-6">
-                <h3>K8S TESTING</h3>
-                <p>With Kubernetes
-                </p>
-            </div>
-        </div>
-    </div>
-</body>
 
+<div id="container">
+	<div class="row">
+		<section id="cust">
+			<h2>Customer Messages
+				<span class="subtitle">.tableInserts('customer_client'), .tableUpdates('customer_client'), .tableDeletions('customer_client')
+			</h2>
+			<div class="messages"></div>
+		</section>
+		<section id="rep">
+			<h2>Representative Messages
+				<span class="subtitle">.changesForTable('representative')</span>
+			</h2>
+			<div class="messages"></div>
+		</section>
+	</div>
+	<div class="row">
+		<section id="all">
+			<h2>Raw Messages
+				<span class="subtitle">.subscribe(onNext, onError, onCompleted)</span>
+			</h2>
+			<div class="messages"></div>
+		</section>
+	</div>
+</div>
+
+<script src="https://pdsilva.beyondtrustcloud.com/api/state.js"></script>
+<script type="text/javascript">
+	var repSection = document.getElementById('rep');
+	var custSection = document.getElementById('cust');
+	var allSection = document.getElementById('all');
+
+	var messages$ = BomgarState({
+		host: 'pdsilva.beyondtrustcloud.com',
+		port: 443,
+		company: 'test',
+		username: '[YOUR USERNAME HERE]',
+		password: '[YOUR PASSWORD HERE]',
+		tables: 'all' // or an array like ['customer_client', 'representative']
+	});
+
+	var subscription = messages$.subscribe(
+		function onNext(message) {
+			appendMessage('Message:', message, allSection);
+		},
+		function onError(error) {
+			appendMessage('An error occurred:', error, allSection, 'red');
+			console.error('An error occurred: %s', error);
+		},
+		function onCompleted() {
+			appendMessage('The End', 'Connection closed.', allSection, '#f50');
+			console.warn('Connection closed. No more messages will be received.');
+		}
+	);
+
+	messages$.changesForTable('representative')
+		.subscribe(function onRepChange(message) {
+			appendMessage('Change: ', message, repSection);
+		});
+
+	messages$.tableInserts('customer_client')
+		.subscribe(function onCustInsert(message) {
+			appendMessage('Insert: ', message, custSection, 'green');
+		});
+
+	messages$.tableUpdates('customer_client')
+		.subscribe(function onCustUpdate(message) {
+			appendMessage('Update: ', message, custSection, 'blue');
+		});
+
+	messages$.tableDeletions('customer_client')
+		.subscribe(function onCustDeletion(message) {
+			appendMessage('Deletion: ', message, custSection, 'red');
+		});
+
+	function appendMessage(label, message, section, color) {
+		var messages = section.querySelector('.messages');
+		var div = document.createElement('div');
+		var hr = document.createElement('hr');
+		var h4 = document.createElement('h4');
+		h4.textContent = label;
+
+		var p = document.createElement('p');
+		p.style.color = color || 'black';
+		p.textContent = JSON.stringify(message, null, '\t');
+
+		div.appendChild(h4);
+		div.appendChild(p);
+		messages.appendChild(hr);
+		messages.appendChild(div);
+		setTimeout(function() {
+			messages.scrollTop = messages.scrollHeight;
+		}, 250);
+</script>
+</body>
 </html>
